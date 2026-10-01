@@ -1,7 +1,8 @@
-import { CalendarCheck, ChevronRight, Download, FileJson, Mail, ScanLine, Smartphone, Sparkles } from 'lucide-react'
+import { CalendarCheck, ChevronRight, Compass, Download, EllipsisVertical, FileJson, Mail, MonitorDown, ScanLine, Share, Smartphone, Sparkles, SquarePlus } from 'lucide-react'
 import { AnimatePresence, motion, type PanInfo } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { isIOS, isStandalone, useInstall } from '../lib/pwa'
 import { Ring } from './Ring'
 
 const TUTORIAL_KEY = 'ausencias:tutorial'
@@ -66,13 +67,17 @@ const SLIDES: Slide[] = [
   },
 ]
 
-export function Onboarding({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** withInstall: la primera vez, antes del tutorial, explica cómo instalar la app (si no está ya instalada). */
+export function Onboarding({ open, onClose, withInstall }: { open: boolean; onClose: () => void; withInstall: boolean }) {
   const [[index, direction], setPage] = useState<[number, number]>([0, 0])
+  const [phase, setPhase] = useState<'install' | 'slides'>(() => (withInstall && !isStandalone() ? 'install' : 'slides'))
   const last = index === SLIDES.length - 1
 
   useEffect(() => {
-    if (open) setPage([0, 0])
-  }, [open])
+    if (!open) return
+    setPage([0, 0])
+    setPhase(withInstall && !isStandalone() ? 'install' : 'slides')
+  }, [open, withInstall])
 
   function go(next: number) {
     if (next < 0 || next >= SLIDES.length) return
@@ -119,7 +124,17 @@ export function Onboarding({ open, onClose }: { open: boolean; onClose: () => vo
             transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
           />
 
-          <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
+          <AnimatePresence mode="wait" initial={false}>
+          {phase === 'install' ? (
+            <InstallStep key="install" onContinue={() => setPhase('slides')} />
+          ) : (
+          <motion.div
+            key="slides"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+            className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-[calc(env(safe-area-inset-bottom)+20px)]"
+          >
             <div className="flex justify-end">
               {!last && (
                 <button type="button" onClick={finish} className="rounded-full px-3 py-1.5 text-sm font-bold text-muted transition hover:text-fg">
@@ -205,11 +220,165 @@ export function Onboarding({ open, onClose }: { open: boolean; onClose: () => vo
                 </>
               )}
             </motion.button>
-          </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>,
     document.body,
+  )
+}
+
+/* ---------- Pantalla previa: cómo instalar la app ---------- */
+
+type Platform = 'ios' | 'android' | 'desktop'
+
+const INSTALL_STEPS: Record<Platform, { icon: typeof Share; text: ReactNode }[]> = {
+  ios: [
+    { icon: Compass, text: <>Abre esta página en <b>Safari</b>.</> },
+    { icon: Share, text: <>Toca el botón <b>Compartir</b> de la barra de abajo.</> },
+    { icon: SquarePlus, text: <>Elige <b>Añadir a pantalla de inicio</b> y pulsa <b>Añadir</b>.</> },
+  ],
+  android: [
+    { icon: EllipsisVertical, text: <>En Chrome, abre el menú <b>⋮</b> de arriba a la derecha.</> },
+    { icon: Download, text: <>Toca <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</> },
+  ],
+  desktop: [
+    { icon: MonitorDown, text: <>Pulsa el icono de <b>instalar</b> en la barra de direcciones.</> },
+    { icon: EllipsisVertical, text: <>O abre el menú <b>⋮</b> y elige <b>Instalar Ausencias</b>.</> },
+  ],
+}
+
+function InstallStep({ onContinue }: { onContinue: () => void }) {
+  const install = useInstall()
+  const [platform, setPlatform] = useState<Platform>(() => (isIOS() ? 'ios' : /android/i.test(navigator.userAgent) ? 'android' : 'desktop'))
+  const tabs: { value: Platform; label: string }[] = [
+    { value: 'ios', label: 'iPhone' },
+    { value: 'android', label: 'Android' },
+    { value: 'desktop', label: 'Ordenador' },
+  ]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.3 }}
+      className="relative mx-auto flex w-full max-w-md flex-1 flex-col overflow-y-auto px-6 pt-[calc(env(safe-area-inset-top)+24px)] pb-[calc(env(safe-area-inset-bottom)+20px)]"
+    >
+      <div className="flex flex-1 flex-col justify-center">
+        <PhoneArt />
+        <h2 className="mt-7 text-center text-[2rem] leading-tight font-extrabold tracking-tight">Instálala en tu móvil</h2>
+        <p className="mx-auto mt-2 max-w-sm text-center text-[16px] leading-relaxed text-muted">
+          La tendrás en tu pantalla de inicio, a pantalla completa y funcionando sin conexión, como una app más.
+        </p>
+
+        {install.canPrompt ? (
+          <p className="mx-auto mt-6 rounded-2xl bg-emerald-500/12 px-4 py-3 text-center text-sm font-semibold text-emerald-300">
+            Tu navegador permite instalarla con un solo toque.
+          </p>
+        ) : (
+          <div className="mt-6">
+            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-soft p-1" role="tablist" aria-label="Tu dispositivo">
+              {tabs.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={platform === t.value}
+                  onClick={() => setPlatform(t.value)}
+                  className={`relative rounded-xl py-2 text-sm font-bold transition-colors ${platform === t.value ? 'text-fg' : 'text-muted'}`}
+                >
+                  {platform === t.value && (
+                    <motion.span layoutId="install-tab" className="absolute inset-0 rounded-xl bg-card ring-1 ring-line" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />
+                  )}
+                  <span className="relative">{t.label}</span>
+                </button>
+              ))}
+            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.ol
+                key={platform}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="mt-3 grid gap-2"
+              >
+                {INSTALL_STEPS[platform].map(({ icon: Icon, text }, i) => (
+                  <li key={i} className="flex items-center gap-3 rounded-2xl bg-soft px-3.5 py-3 text-[15px] [&_b]:text-fg">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-card text-violet-300 ring-1 ring-line">
+                      <Icon size={19} />
+                    </span>
+                    <span className="text-muted">
+                      <b className="mr-1 text-fg">{i + 1}.</b>
+                      {text}
+                    </span>
+                  </li>
+                ))}
+              </motion.ol>
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 grid gap-2">
+        {install.canPrompt ? (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.97 }}
+            onClick={async () => {
+              await install.prompt()
+              onContinue()
+            }}
+            className="btn-primary min-h-14 w-full text-[17px]"
+          >
+            <Download size={19} /> Instalar ahora
+          </motion.button>
+        ) : (
+          <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={onContinue} className="btn-primary min-h-14 w-full text-[17px]">
+            Ver el tutorial <ChevronRight size={19} strokeWidth={2.5} />
+          </motion.button>
+        )}
+        <button type="button" onClick={onContinue} className="btn-ghost w-full text-sm">
+          Ahora no, seguir en el navegador
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+function PhoneArt() {
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="relative mx-auto h-52 w-36 rounded-[2rem] bg-card p-3 pt-7 ring-2 ring-white/15"
+    >
+      <span className="absolute top-2.5 left-1/2 h-1.5 w-10 -translate-x-1/2 rounded-full bg-white/15" />
+      <div className="grid grid-cols-3 gap-2.5">
+        {Array.from({ length: 8 }, (_, i) => (
+          <span key={i} className="aspect-square rounded-xl bg-white/[0.07]" />
+        ))}
+        <motion.img
+          src="/icon-192.png"
+          alt=""
+          className="aspect-square w-full rounded-xl shadow-lg shadow-fuchsia-600/50"
+          initial={{ y: -90, scale: 1.6, opacity: 0 }}
+          animate={{ y: 0, scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5, type: 'spring', damping: 11, stiffness: 160 }}
+        />
+      </div>
+      <motion.span
+        className="absolute -right-3 -bottom-3 grid size-11 place-items-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/40"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 1.1, type: 'spring', damping: 12 }}
+      >
+        <Smartphone size={20} />
+      </motion.span>
+    </motion.div>
   )
 }
 

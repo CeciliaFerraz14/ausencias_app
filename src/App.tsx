@@ -62,6 +62,7 @@ export default function App() {
 
       <Onboarding
         open={firstRun || sheet?.kind === 'tutorial'}
+        withInstall={firstRun}
         onClose={() => {
           setFirstRun(false)
           closeSheet()
