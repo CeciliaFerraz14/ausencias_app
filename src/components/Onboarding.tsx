@@ -1,4 +1,4 @@
-import { CalendarCheck, ChevronRight, Mail, ScanLine, Sparkles } from 'lucide-react'
+import { CalendarCheck, ChevronRight, Download, FileJson, Mail, ScanLine, Smartphone, Sparkles } from 'lucide-react'
 import { AnimatePresence, motion, type PanInfo } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -53,6 +53,16 @@ const SLIDES: Slide[] = [
     title: 'La carta de los 5 días',
     text: '5 días lectivos seguidos sin venir, o 10 en un periodo de 30, y el centro te pide que te incorpores. También lo vigilamos.',
     art: LetterArt,
+  },
+  {
+    title: 'Tus datos, en tu móvil',
+    text: (
+      <>
+        No hay cuentas: todo se guarda <b>solo en este dispositivo</b>. Si borras los datos del navegador o cambias de móvil, se pierden. Haz una copia
+        de vez en cuando en <b>Ajustes → Exportar datos</b>.
+      </>
+    ),
+    art: DataArt,
   },
 ]
 
@@ -397,6 +407,48 @@ function LetterArt() {
         transition={{ duration: 4.5, repeat: Infinity, times: [0, 0.55, 0.65, 0.72, 0.9, 1] }}
       >
         <Mail size={44} strokeWidth={2} />
+      </motion.div>
+    </div>
+  )
+}
+
+function DataArt() {
+  return (
+    <div className="relative flex items-center gap-10">
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="relative grid h-56 w-32 place-items-center rounded-[2rem] bg-card ring-2 ring-white/15"
+      >
+        <span className="absolute top-2.5 h-1.5 w-10 rounded-full bg-white/15" />
+        <motion.div
+          className="brand-gradient grid size-16 place-items-center rounded-2xl text-white shadow-lg shadow-fuchsia-600/40"
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <Smartphone size={30} />
+        </motion.div>
+        <span className="absolute bottom-6 text-[11px] font-bold tracking-wide text-muted uppercase">Tus faltas</span>
+      </motion.div>
+
+      <motion.div
+        className="absolute top-1/2 left-24 grid size-14 place-items-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/40"
+        animate={{ x: [0, 0, 112, 112], y: ['-50%', '-50%', '-50%', '-50%'], opacity: [0, 1, 1, 0], scale: [0.5, 1, 1, 0.8] }}
+        transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 0.6, times: [0, 0.2, 0.75, 1] }}
+      >
+        <FileJson size={26} />
+      </motion.div>
+
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.2, type: 'spring', damping: 14 }}
+        className="grid justify-items-center gap-2"
+      >
+        <div className="grid size-24 place-items-center rounded-3xl bg-soft text-emerald-400 ring-1 ring-line">
+          <Download size={40} />
+        </div>
+        <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold text-muted ring-1 ring-line">ausencias.json</span>
       </motion.div>
     </div>
   )
