@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+:root {
+  /* La app usa siempre el tema oscuro. */
+  --bg: #0d0b18;
+  --card: #181528;
+  --soft: #221e36;
+  --line: rgb(255 255 255 / 0.08);
+  --fg: #f4f2ff;
+  --muted: #a19cbd;
+  --glow-1: rgb(124 58 237 / 0.35);
+  --glow-2: rgb(219 39 119 / 0.22);
+  color-scheme: dark;
+}
+
+/* Las clases dark: se activan con la clase .dark del <html>, no con el tema del sistema. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-soft: var(--soft);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+  }
+  button {
+    cursor: pointer;
+  }
+  input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 3rem;
+  }
+  :focus-visible {
+    outline: 2px solid #8b5cf6;
+    outline-offset: 2px;
+  }
+}
+
+@utility field-input {
+  @apply w-full min-w-0 rounded-2xl border border-line bg-soft px-4 py-3 text-base text-fg outline-none transition placeholder:text-muted/70 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15;
+}
+@utility field-label {
+  @apply mb-1.5 block text-sm font-semibold text-muted;
+}
+@utility btn {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 font-semibold transition active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-linear-to-r from-violet-600 via-fuchsia-600 to-pink-500 text-white shadow-lg shadow-fuchsia-600/25;
+}
+@utility btn-soft {
+  @apply btn bg-soft text-fg;
+}
+@utility btn-ghost {
+  @apply btn text-muted hover:bg-soft hover:text-fg;
+}
+@utility glass {
+  @apply bg-white/15 ring-1 ring-white/25 backdrop-blur-md;
+}
+@utility card {
+  @apply rounded-3xl bg-card ring-1 ring-line shadow-[0_1px_2px_rgb(30_20_80/0.04),0_8px_24px_-8px_rgb(30_20_80/0.12)] dark:shadow-none;
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, #7c3aed 0%, #c026d3 55%, #fb7185 100%);
+}
+
+.subject-gradient {
+  background: linear-gradient(140deg, var(--c) 0%, color-mix(in oklab, var(--c), #ff4fa3 35%) 100%);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
