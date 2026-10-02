@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { COLORS, HHMM, ISO_DATE, uid } from './logic'
-import type { Absence, AppState, Semester, Session, Subject } from './types'
+import { COLORS, countHours, HHMM, ISO_DATE, uid } from './logic'
+import type { Absence, AppState, Period, Semester, Session, Subject } from './types'
 
 const STORAGE_KEY = 'ausencias:v1'
 
@@ -39,9 +39,12 @@ export function normalizeSchedule(list: unknown): Session[] {
     .map((x) => ({ weekday: x.weekday, start: x.start, end: x.end }))
 }
 
+const isPeriod = (p: any): p is Period => !!p && ISO_DATE.test(p.start) && ISO_DATE.test(p.end) && p.start <= p.end
+
 function normalizeSemester(sem: any): Semester | null {
   if (!sem || !ISO_DATE.test(sem.start) || !ISO_DATE.test(sem.end)) return null
-  return { start: sem.start, end: sem.end }
+  const internships = (Array.isArray(sem.internships) ? sem.internships : []).filter(isPeriod).map((p: Period) => ({ start: p.start, end: p.end }))
+  return { start: sem.start, end: sem.end, internships }
 }
 
 /** Valida datos guardados o importados. Lanza si el formato no es válido. */
@@ -166,5 +169,26 @@ export const actions = {
   },
   setSettings(patch: Partial<AppState['settings']>) {
     update((d) => Object.assign(d.settings, patch))
+  },
+  /**
+   * Cambia el periodo lectivo y recalcula la duración de los módulos que aún tienen
+   * la estimada con el horario (las corregidas a mano se respetan). Devuelve cuántos cambian.
+   */
+  setSemester(next: Semester) {
+    let recalculated = 0
+    update((d) => {
+      const prev = d.settings.semester
+      for (const s of d.subjects) {
+        if (!prev || !s.schedule.length) continue
+        if (s.totalHours !== Math.max(1, countHours(s.schedule, prev))) continue
+        const hours = Math.max(1, countHours(s.schedule, next))
+        if (hours !== s.totalHours) {
+          s.totalHours = hours
+          recalculated++
+        }
+      }
+      d.settings.semester = next
+    })
+    return recalculated
   },
 }

@@ -1,10 +1,15 @@
-import { plural, stats, vibrate } from './logic'
+import { formatShortDate, internshipOn, plural, stats, vibrate } from './logic'
 import { actions, getState } from './store'
 import type { Absence } from './types'
 import type { UI } from './ui'
 
 /** Anota una falta y muestra un aviso con lo que queda y la opción de deshacer. */
 export function addAbsenceWithUndo(ui: UI, subjectId: string, absence: Omit<Absence, 'id'>) {
+  const internship = internshipOn(absence.date, getState().settings.semester)
+  if (internship) {
+    ui.toast(`Estás de prácticas hasta el ${formatShortDate(internship.end)}: no cuentan como faltas escolares`)
+    return
+  }
   const id = actions.addAbsence(subjectId, absence)
   vibrate()
   const { subjects, settings } = getState()

@@ -1,4 +1,4 @@
-import type { AppState, Session, Stats, Status, Subject } from './types'
+import type { AppState, Period, Semester, Session, Stats, Status, Subject } from './types'
 
 /* =========================================================
    Reglas del DECRETO 91/2024 (Aragón), Formación Profesional:
@@ -95,6 +95,10 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 export const formatLongDate = (d: Date) => cap(longDate.format(d))
 export const formatMonth = (iso: string) => cap(monthYear.format(fromISO(iso)))
 
+const shortDate = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' })
+/** «3 feb» */
+export const formatShortDate = (iso: string) => shortDate.format(fromISO(iso)).replace('.', '')
+
 export function formatSession(x: Session) {
   return `${WEEKDAYS[x.weekday - 1]} ${x.start}–${x.end}`
 }
@@ -119,14 +123,25 @@ export function isChristmas(d: Date) {
   return (m === 11 && day >= 23) || (m === 0 && day <= 7)
 }
 
-/** Horas lectivas estimadas entre dos fechas (incluidas) según el horario semanal. */
-export function countHours(schedule: Session[], startISO: string, endISO: string) {
+/** Periodo de prácticas en el que cae la fecha, si lo hay. */
+export function internshipOn(iso: string, sem: Pick<Semester, 'internships'> | null | undefined): Period | undefined {
+  return sem?.internships.find((p) => p.start <= iso && iso <= p.end)
+}
+
+/** Días sin clase aunque el horario diga lo contrario: Navidad y prácticas. */
+export function isNoClassDay(d: Date, sem: Pick<Semester, 'internships'> | null | undefined) {
+  return isChristmas(d) || !!internshipOn(toISO(d), sem)
+}
+
+/** Horas lectivas estimadas del curso (fechas incluidas) según el horario semanal. */
+export function countHours(schedule: Session[], sem: Period & Partial<Pick<Semester, 'internships'>>) {
   const perWeekday = Array<number>(8).fill(0)
   for (const x of schedule) perWeekday[x.weekday] += blockHours(x)
-  const end = fromISO(endISO)
+  const breaks = { internships: sem.internships ?? [] }
+  const end = fromISO(sem.end)
   let total = 0
-  for (const d = fromISO(startISO); d <= end; d.setDate(d.getDate() + 1)) {
-    if (!isChristmas(d)) total += perWeekday[weekdayOf(d)]
+  for (const d = fromISO(sem.start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (!isNoClassDay(d, breaks)) total += perWeekday[weekdayOf(d)]
   }
   return total
 }
@@ -174,10 +189,10 @@ export function attendance(state: AppState, today = new Date()): Attendance | nu
   const missed = new Map<string, number>()
   for (const s of state.subjects) for (const a of s.absences) missed.set(a.date, (missed.get(a.date) ?? 0) + a.amount)
 
-  const isLective = (d: Date) => perWeekday[weekdayOf(d)] > 0 && !isChristmas(d)
+  const sem = state.settings.semester
+  const isLective = (d: Date) => perWeekday[weekdayOf(d)] > 0 && !isNoClassDay(d, sem)
   const fullDay = (d: Date) => (missed.get(toISO(d)) ?? 0) >= perWeekday[weekdayOf(d)]
 
-  const sem = state.settings.semester
   const startISO = sem?.start ?? [...missed.keys()].sort()[0] ?? toISO(today)
   const start = fromISO(startISO)
 

@@ -23,8 +23,12 @@ export type Subject = {
   absences: Absence[]
 }
 
+export type Period = { start: string; end: string } // YYYY-MM-DD, ambas incluidas
+
 /** Periodo lectivo del curso (o desde la fecha de matrícula). */
-export type Semester = { start: string; end: string }
+export type Semester = Period & {
+  internships: Period[] // prácticas en empresa: no hay clase ni cuentan faltas escolares
+}
 
 export type AppState = {
   subjects: Subject[]

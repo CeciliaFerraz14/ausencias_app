@@ -64,6 +64,7 @@ function ImportFlow({
   const state = useAppState()
   const ui = useUI()
   const initial = state.settings.semester ?? defaultCourse()
+  const internships = state.settings.semester?.internships ?? []
 
   const [step, setStepLocal] = useState<Step>('upload')
   const [photo, setPhoto] = useState<{ dataUrl: string; base64: string } | null>(null)
@@ -103,7 +104,7 @@ function ImportFlow({
   function hoursOf(item: Item) {
     const manual = Number(item.hours)
     if (item.hours !== '' && Number.isInteger(manual) && manual >= 1) return manual
-    return periodError ? null : Math.max(1, countHours(item.schedule, start, end))
+    return periodError ? null : Math.max(1, countHours(item.schedule, { start, end, internships }))
   }
 
   async function pickPhoto(file: File | undefined) {
@@ -126,7 +127,7 @@ function ImportFlow({
     if (!photo) return setError('Primero haz o elige una foto de tu horario.')
     if (needCode) setAccessCode(code)
 
-    actions.setSettings({ semester: { start, end } })
+    actions.setSettings({ semester: { start, end, internships } })
     setStep('loading')
     abortRef.current = new AbortController()
     try {
@@ -180,7 +181,7 @@ function ImportFlow({
           created++
         }
       }
-      d.settings.semester = { start, end }
+      d.settings.semester = { start, end, internships }
     })
     navigator.storage?.persist?.().catch(() => {})
     onDone()
@@ -339,6 +340,7 @@ function ImportFlow({
         </div>
         <p className="-mt-1 text-sm text-muted">
           Si te matriculaste más tarde, pon tu fecha de matrícula.
+          {internships.length > 0 && ' Se descuentan tus periodos de prácticas.'}
           {step === 'review' && ' La duración de cada módulo es una estimación con tu horario (sin Navidad): corrígela con la de la programación didáctica.'}
         </p>
       </fieldset>

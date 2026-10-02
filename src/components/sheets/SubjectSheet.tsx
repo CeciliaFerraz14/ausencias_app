@@ -57,7 +57,7 @@ function SubjectForm({ subjectId, onDone }: { subjectId?: string; onDone: () => 
   const [total, setTotal] = useState(subject ? String(subject.totalHours) : '')
   const [error, setError] = useState('')
   const sem = state.settings.semester
-  const estimate = subject?.schedule.length && sem ? countHours(subject.schedule, sem.start, sem.end) : null
+  const estimate = subject?.schedule.length && sem ? countHours(subject.schedule, sem) : null
 
   const totalN = Number(total)
   const valid = Number.isInteger(totalN) && totalN >= 1

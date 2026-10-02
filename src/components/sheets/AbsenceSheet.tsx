@@ -1,7 +1,7 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { addAbsenceWithUndo } from '../../lib/absences'
-import { ISO_DATE, todayISO } from '../../lib/logic'
+import { formatShortDate, internshipOn, ISO_DATE, todayISO } from '../../lib/logic'
 import { actions, useAppState } from '../../lib/store'
 import { useUI } from '../../lib/ui'
 import { ErrorText, Field, Switch } from '../common'
@@ -60,6 +60,11 @@ function AbsenceForm({ subjectId, absenceId, onDone }: { subjectId: string; abse
   function submit(e: FormEvent) {
     e.preventDefault()
     if (!ISO_DATE.test(date)) return setError('Elige una fecha.')
+    const internship = internshipOn(date, state.settings.semester)
+    if (internship)
+      return setError(
+        `Ese día estás de prácticas (${formatShortDate(internship.start)} – ${formatShortDate(internship.end)}): no cuenta como falta escolar.`,
+      )
     const data = { date, amount, justified, note: note.trim().slice(0, 120) }
     if (absence) actions.updateAbsence(subjectId, absence.id, data)
     else addAbsenceWithUndo(ui, subjectId, data)

@@ -1,4 +1,4 @@
-import { CalendarX2, Camera, Check, Info, ListChecks, PartyPopper, ScanLine, Settings, Sparkles, SquarePen } from 'lucide-react'
+import { Briefcase, CalendarX2, Camera, Check, Info, ListChecks, PartyPopper, ScanLine, Settings, Sparkles, SquarePen } from 'lucide-react'
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import { addAbsenceWithUndo } from '../lib/absences'
@@ -6,6 +6,8 @@ import {
   attendance,
   blockHours,
   formatLongDate,
+  formatShortDate,
+  internshipOn,
   plural,
   remainingText,
   slotKey,
@@ -165,6 +167,23 @@ function TodaySection({ state, now }: { state: AppState; now: Date }) {
   if (!state.subjects.some((s) => s.schedule.length)) return null
 
   const today = todayISO()
+  const internship = internshipOn(today, state.settings.semester)
+  if (internship)
+    return (
+      <section className="mt-8">
+        <SectionTitle>Hoy</SectionTitle>
+        <div className="card flex items-center gap-4 p-4">
+          <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sky-500/12 text-sky-600 dark:text-sky-400">
+            <Briefcase size={24} />
+          </div>
+          <div>
+            <p className="font-bold">Estás de prácticas</p>
+            <p className="text-sm text-muted">Hasta el {formatShortDate(internship.end)}. Estos días no cuentan como faltas escolares.</p>
+          </div>
+        </div>
+      </section>
+    )
+
   const wd = weekdayOf(now)
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   const sessions = state.subjects

@@ -1,11 +1,12 @@
-import { Download, GraduationCap, KeyRound, Scale, Smartphone, Trash2, Upload } from 'lucide-react'
+import { Briefcase, CalendarRange, Download, GraduationCap, KeyRound, Plus, Scale, Smartphone, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { getAccessCode, setAccessCode } from '../../lib/api'
-import { plural, todayISO } from '../../lib/logic'
+import { defaultCourse, fromISO, ISO_DATE, plural, toISO, todayISO } from '../../lib/logic'
 import { useInstall } from '../../lib/pwa'
 import { actions, getState, normalize, replaceState, resetState, useAppState } from '../../lib/store'
+import type { Period, Semester } from '../../lib/types'
 import { useUI } from '../../lib/ui'
-import { Switch } from '../common'
+import { ErrorText, Switch } from '../common'
 import { Sheet } from '../Sheet'
 
 export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -68,6 +69,8 @@ function SettingsBody({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="grid gap-6 pt-1 pb-2">
+      <CoursePeriod />
+
       <Group title="Faltas">
         <div className="flex items-center justify-between gap-4 px-4 py-3.5">
           <div>
@@ -148,6 +151,114 @@ function SettingsBody({ onClose }: { onClose: () => void }) {
       />
 
       <p className="px-1 text-center text-xs text-muted">Tus datos se guardan solo en este dispositivo. Exporta una copia para pasarlos a otro móvil.</p>
+    </div>
+  )
+}
+
+function CoursePeriod() {
+  const state = useAppState()
+  const ui = useUI()
+  const saved = state.settings.semester
+  const initial = saved ?? { ...defaultCourse(), internships: [] }
+  const [start, setStart] = useState(initial.start)
+  const [end, setEnd] = useState(initial.end)
+  const [internships, setInternships] = useState<Period[]>(initial.internships)
+  const [error, setError] = useState('')
+  const draft: Semester = { start, end, internships }
+  const dirty = !saved || JSON.stringify(draft) !== JSON.stringify(saved)
+
+  const patchInternship = (i: number, patch: Partial<Period>) =>
+    setInternships((list) => list.map((p, j) => (j === i ? { ...p, ...patch } : p)))
+
+  function addInternship() {
+    // Propone un mes entero a mitad de curso como punto de partida para ajustarlo.
+    const from = ISO_DATE.test(start) ? fromISO(start) : new Date()
+    from.setMonth(from.getMonth() + 5, 1)
+    const until = new Date(from.getFullYear(), from.getMonth() + 1, 0)
+    setInternships((list) => [...list, { start: toISO(from), end: toISO(until) }])
+  }
+
+  function save() {
+    if (!ISO_DATE.test(start) || !ISO_DATE.test(end)) return setError('Indica cuándo empiezan y terminan las clases.')
+    if (start > end) return setError('La fecha de fin del curso debe ser posterior a la de inicio.')
+    for (const p of internships) {
+      if (!ISO_DATE.test(p.start) || !ISO_DATE.test(p.end)) return setError('Indica cuándo empiezan y terminan las prácticas.')
+      if (p.start > p.end) return setError('La fecha de fin de las prácticas debe ser posterior a la de inicio.')
+      if (p.start < start || p.end > end) return setError('Las prácticas tienen que estar dentro del curso.')
+    }
+    setError('')
+    const sorted = [...internships].sort((a, b) => a.start.localeCompare(b.start))
+    setInternships(sorted)
+    const recalculated = actions.setSemester({ start, end, internships: sorted })
+    ui.toast(recalculated ? `Fechas guardadas · ${plural(recalculated, 'módulo')} recalculado${recalculated === 1 ? '' : 's'}` : 'Fechas guardadas')
+  }
+
+  return (
+    <Group title="Curso">
+      <div className="grid gap-3 px-4 py-3.5">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-card ring-1 ring-line">
+            <CalendarRange size={17} />
+          </span>
+          <p className="font-semibold">Periodo lectivo</p>
+        </div>
+        <DateRange start={start} end={end} onStart={setStart} onEnd={setEnd} />
+      </div>
+
+      <div className="grid gap-3 px-4 py-3.5">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-card ring-1 ring-line">
+            <Briefcase size={17} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold">Prácticas en empresa</p>
+            <p className="text-sm text-muted">Esos días no hay clase ni cuentan como faltas escolares.</p>
+          </div>
+        </div>
+        {internships.map((p, i) => (
+          <div key={i} className="flex items-end gap-2">
+            <DateRange start={p.start} end={p.end} onStart={(v) => patchInternship(i, { start: v })} onEnd={(v) => patchInternship(i, { end: v })} />
+            <button
+              type="button"
+              aria-label="Quitar periodo de prácticas"
+              onClick={() => setInternships((list) => list.filter((_, j) => j !== i))}
+              className="grid size-12 shrink-0 place-items-center rounded-2xl text-muted transition hover:bg-rose-500/15 hover:text-rose-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        ))}
+        <button type="button" className="btn-soft justify-self-start" onClick={addInternship}>
+          <Plus size={17} /> Añadir periodo de prácticas
+        </button>
+      </div>
+
+      <div className="grid gap-3 px-4 py-3.5">
+        <p className="text-sm text-muted">
+          Al guardar se recalcula la duración de los módulos con su horario. Las duraciones que corregiste a mano se mantienen.
+        </p>
+        <ErrorText>{error}</ErrorText>
+        {dirty && (
+          <button type="button" className="btn-primary" onClick={save}>
+            Guardar fechas
+          </button>
+        )}
+      </div>
+    </Group>
+  )
+}
+
+function DateRange({ start, end, onStart, onEnd }: { start: string; end: string; onStart: (v: string) => void; onEnd: (v: string) => void }) {
+  return (
+    <div className="grid min-w-0 flex-1 grid-cols-2 gap-3">
+      <label className="block min-w-0">
+        <span className="block text-sm font-semibold text-muted">Empieza</span>
+        <input className="field-input" type="date" value={start} onChange={(e) => onStart(e.target.value)} />
+      </label>
+      <label className="block min-w-0">
+        <span className="block text-sm font-semibold text-muted">Termina</span>
+        <input className="field-input" type="date" value={end} onChange={(e) => onEnd(e.target.value)} />
+      </label>
     </div>
   )
 }
