@@ -48,7 +48,7 @@ function SettingsBody({ onClose }: { onClose: () => void }) {
     })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `ausencias-${todayISO()}.json`
+    a.download = `faltapp-${todayISO()}.json`
     document.body.append(a)
     a.click()
     a.remove()

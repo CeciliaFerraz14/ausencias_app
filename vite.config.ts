@@ -61,8 +61,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'prompt',
         includeAssets: ['icon.svg', 'apple-touch-icon.png'],
         manifest: {
-          name: 'Ausencias',
-          short_name: 'Ausencias',
+          name: 'FaltApp',
+          short_name: 'FaltApp',
           description: 'Controla cuántas veces puedes faltar a cada asignatura.',
           lang: 'es',
           start_url: '/',

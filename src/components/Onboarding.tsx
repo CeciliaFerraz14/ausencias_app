@@ -246,7 +246,7 @@ const INSTALL_STEPS: Record<Platform, { icon: typeof Share; text: ReactNode }[]>
   ],
   desktop: [
     { icon: MonitorDown, text: <>Pulsa el icono de <b>instalar</b> en la barra de direcciones.</> },
-    { icon: EllipsisVertical, text: <>O abre el menú <b>⋮</b> y elige <b>Instalar Ausencias</b>.</> },
+    { icon: EllipsisVertical, text: <>O abre el menú <b>⋮</b> y elige <b>Instalar FaltApp</b>.</> },
   ],
 }
 
@@ -617,7 +617,7 @@ function DataArt() {
         <div className="grid size-24 place-items-center rounded-3xl bg-soft text-emerald-400 ring-1 ring-line">
           <Download size={40} />
         </div>
-        <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold text-muted ring-1 ring-line">ausencias.json</span>
+        <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold text-muted ring-1 ring-line">faltapp.json</span>
       </motion.div>
     </div>
   )

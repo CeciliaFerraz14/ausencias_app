@@ -1,4 +1,4 @@
-# Ausencias
+# FaltApp
 
 PWA para controlar las faltas en los módulos de Formación Profesional en Aragón, según el **Decreto 91/2024** (arts. 18 y 19). Escanea una foto del horario y la app crea los módulos, estima sus horas y te dice cuántas faltas te quedan antes de perder la evaluación continua.
 
